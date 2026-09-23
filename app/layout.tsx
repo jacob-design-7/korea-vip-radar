@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
+import "./globals.css";
 
-export const metadata = { title: "Korea VIP Radar", description: "Evidence-first VIP opportunity radar" };
+export const metadata = {
+  title: "Korea VIP Radar",
+  description: "Evidence-first Korea visit intelligence"
+};
 
 export default function RootLayout({children}:{children:ReactNode}) {
-  return <html lang="ko"><body style={{margin:0}}>{children}</body></html>;
+  return <html lang="ko"><body>{children}</body></html>;
 }

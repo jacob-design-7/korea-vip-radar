@@ -1,0 +1,34 @@
+:root{
+  color-scheme:light;
+  --bg:#f7f8fa;
+  --panel:#ffffff;
+  --panel-soft:#fbfcfd;
+  --text:#111827;
+  --text-2:#344054;
+  --muted:#667085;
+  --muted-2:#98a2b3;
+  --border:#e7e9ee;
+  --border-strong:#d9dde5;
+  --accent:#315efb;
+  --accent-soft:#eef2ff;
+  --success:#16845b;
+  --success-soft:#ecfdf3;
+  --warning:#b7791f;
+  --warning-soft:#fffaeb;
+  --danger:#b42318;
+  --danger-soft:#fff1f0;
+  --shadow-sm:0 1px 2px rgba(16,24,40,.03),0 1px 3px rgba(16,24,40,.04);
+  --shadow-md:0 8px 28px rgba(16,24,40,.07);
+  --radius-sm:10px;
+  --radius-md:14px;
+  --radius-lg:18px;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit}
+button{transition:transform .12s ease,box-shadow .12s ease,background .12s ease,border-color .12s ease}
+button:active:not(:disabled){transform:translateY(1px)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid rgba(49,94,251,.14);outline-offset:2px}
+a{color:inherit;text-decoration:none}
+::selection{background:#dce5ff}
