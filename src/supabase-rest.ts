@@ -1,55 +1,45 @@
-type QueryOptions = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
-  body?: unknown;
-  headers?: Record<string, string>;
-};
-
+export interface SupabaseRestOptions {
+  url?: string;
+  serviceRoleKey?: string;
+  fetchImpl?: typeof fetch;
+}
+function requireEnv(name:string,value?:string){if(!value)throw new Error(`${name} is required.`);return value.replace(/\/$/,"");}
 export class SupabaseRestClient {
-  private readonly baseUrl: string;
-  private readonly key: string;
-
-  constructor() {
-    const baseUrl = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!baseUrl || !key) {
-      throw new Error("Supabase server environment is not configured.");
-    }
-    this.baseUrl = baseUrl.replace(/\/$/, "");
-    this.key = key;
+  readonly baseUrl:string; readonly key:string; readonly fetchImpl:typeof fetch;
+  constructor(options:SupabaseRestOptions={}){
+    this.baseUrl=requireEnv("SUPABASE_URL",options.url??process.env.SUPABASE_URL);
+    this.key=requireEnv("SUPABASE_SERVICE_ROLE_KEY",options.serviceRoleKey??process.env.SUPABASE_SERVICE_ROLE_KEY);
+    this.fetchImpl=options.fetchImpl??fetch;
   }
-
-  private authHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {
-      apikey: this.key,
-      "Content-Type": "application/json",
-      Accept: "application/json"
-    };
-
-    // Legacy service_role keys are JWTs and need Authorization explicitly.
-    // New sb_secret_* keys are opaque API keys; Supabase gateway handles them
-    // through the apikey header and synthesizes downstream authorization.
-    if (!this.key.startsWith("sb_secret_")) {
-      headers.Authorization = `Bearer ${this.key}`;
-    }
-
-    return headers;
+  private headers(extra:Record<string,string>={}){
+    const h:Record<string,string>={apikey:this.key,"Content-Type":"application/json",Accept:"application/json",...extra};
+    if(!this.key.startsWith("sb_secret_")) h.Authorization=`Bearer ${this.key}`;
+    return h;
   }
-
-  async request<T>(path: string, options: QueryOptions = {}): Promise<T> {
-    const res = await fetch(`${this.baseUrl}/rest/v1/${path}`, {
-      method: options.method || "GET",
-      headers: {...this.authHeaders(), ...(options.headers || {})},
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
-      cache: "no-store"
+  private async parse(response:Response){
+    const text=await response.text();let body:any=null;
+    if(text){try{body=JSON.parse(text);}catch{body=text;}}
+    if(!response.ok)throw new Error(`Supabase REST failed (${response.status}): ${typeof body==="string"?body:JSON.stringify(body)}`);
+    return body;
+  }
+  async request<T>(path:string,init:RequestInit={}):Promise<T>{
+    const res=await this.fetchImpl(`${this.baseUrl}/rest/v1/${path}`,{...init,headers:{...this.headers(),...(init.headers as any??{})},cache:"no-store"});
+    return await this.parse(res) as T;
+  }
+  async select<T=any>(table:string,query="select=*"):Promise<T[]>{
+    return await this.request<T[]>(`${encodeURIComponent(table)}?${query}`);
+  }
+  async insert<T=any>(table:string,row:unknown,select="*"):Promise<T[]>{
+    return await this.request<T[]>(`${encodeURIComponent(table)}?select=${encodeURIComponent(select)}`,{
+      method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(row)
     });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Supabase REST ${res.status}: ${text.slice(0, 500)}`);
-    }
-
-    if (res.status === 204) return undefined as T;
-    const text = await res.text();
-    return (text ? JSON.parse(text) : undefined) as T;
+  }
+  async update<T=any>(table:string,filters:string,patch:unknown,select="*"):Promise<T[]>{
+    return await this.request<T[]>(`${encodeURIComponent(table)}?${filters}&select=${encodeURIComponent(select)}`,{
+      method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(patch)
+    });
+  }
+  async rpc<T=any>(fn:string,args:Record<string,unknown>):Promise<T>{
+    return await this.request<T>(`rpc/${encodeURIComponent(fn)}`,{method:"POST",body:JSON.stringify(args)});
   }
 }

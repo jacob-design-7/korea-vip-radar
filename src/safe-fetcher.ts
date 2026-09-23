@@ -4,6 +4,11 @@ import {createHash} from "node:crypto";
 import {resolvePublicAddress,validateUrlShape} from "./security";
 import type {SafeFetchResult} from "./ingestion-types";
 
+function hostAllowed(host:string,allowedHost?:string){
+  if(!allowedHost)return true;
+  const h=host.toLowerCase().replace(/\.$/,"");const a=allowedHost.toLowerCase().replace(/\.$/,"");
+  return h===a||h.endsWith(`.${a}`);
+}
 async function requestPinned(url:URL){
   const {address,family}=await resolvePublicAddress(url.hostname);
   const mod=url.protocol==="https:"?https:http;
@@ -21,12 +26,13 @@ async function requestPinned(url:URL){
     req.on("error",reject);req.end();
   });
 }
-export async function safeFetch(rawUrl:string):Promise<SafeFetchResult>{
+export async function safeFetch(rawUrl:string,allowedHost?:string):Promise<SafeFetchResult>{
   let current=validateUrlShape(rawUrl);const redirects:string[]=[];
   for(let hop=0;hop<=4;hop++){
+    if(!hostAllowed(current.hostname,allowedHost)) throw new Error(`Host not allow-listed: ${current.hostname}`);
     const r=await requestPinned(current);
     if([301,302,303,307,308].includes(r.status)){
-      const loc=r.headers.location;if(!loc)throw new Error("Redirect without Location"); if(hop===4)throw new Error("Too many redirects");
+      const loc=r.headers.location;if(!loc)throw new Error("Redirect without Location");if(hop===4)throw new Error("Too many redirects");
       current=validateUrlShape(new URL(loc,current).toString());redirects.push(current.toString());continue;
     }
     if(r.status<200||r.status>=300)throw new Error(`HTTP ${r.status}`);
