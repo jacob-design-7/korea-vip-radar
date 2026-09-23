@@ -42,7 +42,7 @@ export default function ReviewConsole(){
         <div style={{display:"grid",gridTemplateColumns:"300px 1fr auto",gap:10,alignItems:"end"}}>
           <label><div style={{fontSize:12,fontWeight:700,marginBottom:5}}>Source</div><select style={input} value={sourceId} onChange={e=>choose(e.target.value)}>{sources.map(s=><option key={s.id} value={s.id}>{s.name} · {s.authority_tier}</option>)}</select></label>
           <label><div style={{fontSize:12,fontWeight:700,marginBottom:5}}>공식 페이지 URL</div><input style={input} value={url} onChange={e=>setUrl(e.target.value)}/></label>
-          <button style={{...button,opacity:busy?.55:1}} disabled={busy||!sourceId||!url} onClick={run}>{busy?"수집 중…":"수집·추출"}</button>
+          <button style={{...button,opacity:busy ? 0.55 : 1}} disabled={busy||!sourceId||!url} onClick={run}>{busy?"수집 중…":"수집·추출"}</button>
         </div>
         <div style={{fontSize:12,color:"#829ab1",marginTop:9}}>안전장치: 선택한 Source와 같은 도메인(또는 하위 도메인)만 수집하며, 사설 IP·비표준 포트는 차단합니다.</div>
       </section>
