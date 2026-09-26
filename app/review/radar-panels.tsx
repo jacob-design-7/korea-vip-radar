@@ -15,14 +15,14 @@ async function api(path:string,init?:RequestInit){
 }
 function leadLabel(o:Opp){if(o.lead_days==null)return "Lead time unknown";return o.lead_days>=0?`${o.lead_days} days left`:"Past event";}
 export default function RadarPanels(){
-  const [alerts,setAlerts]=useState<Alert[]>([]);const [opps,setOpps]=useState<Opp[]>([]);const [busy,setBusy]=useState("");const [error,setError]=useState("");
-  async function refresh(){try{const [a,o]=await Promise.all([api("/api/radar/alerts"),api("/api/radar/opportunities")]);setAlerts(a.alerts??[]);setOpps(o.opportunities??[]);}catch(e:any){setError(e.message);}}
+  const [alerts,setAlerts]=useState<Alert[]>([]);const [opps,setOpps]=useState<Opp[]>([]);const [system,setSystem]=useState<any>(null);const [busy,setBusy]=useState("");const [error,setError]=useState("");
+  async function refresh(){try{const [a,o,h]=await Promise.all([api("/api/radar/alerts"),api("/api/radar/opportunities"),api("/api/health/ai")]);setAlerts(a.alerts??[]);setOpps(o.opportunities??[]);setSystem(h);}catch(e:any){setError(e.message);}}
   useEffect(()=>{refresh();},[]);
   async function ack(id:string){setBusy(id);try{await api("/api/radar/alerts/"+id,{method:"POST",body:JSON.stringify({status:"ACKNOWLEDGED"})});await refresh();}catch(e:any){setError(e.message);}finally{setBusy("");}}
   async function draft(id:string){setBusy(id);try{await api("/api/radar/opportunities/"+id+"/draft",{method:"POST",body:"{}"});await refresh();}catch(e:any){setError(e.message);}finally{setBusy("");}}
   const fresh=alerts.filter(a=>a.status==="NEW").slice(0,8);
   return <section id="approved" className={styles.wrap}>
-    <div className={styles.heading}><div><h2>Radar workspace</h2><p>새 후보 알림과 승인된 인사의 접촉 경로·초청 초안을 한 곳에서 관리합니다.</p></div><button onClick={refresh}>Refresh</button></div>
+    <div className={styles.heading}><div><h2>Radar workspace</h2><p>새 후보 알림과 승인된 인사의 접촉 경로·초청 초안을 한 곳에서 관리합니다.</p><div className={styles.readiness}><span className={system?.liveExtractionReady?styles.ready:styles.pending}>AI {system?.liveExtractionReady?"LIVE":"MOCK"}</span><span className={system?.cronConfigured?styles.ready:styles.pending}>AUTO SCAN {system?.cronConfigured?"ON":"OFF"}</span>{system?.model&&<span>{system.model}</span>}</div></div><button onClick={refresh}>Refresh</button></div>
     {error&&<div className={styles.error}>{error}</div>}
     <div className={styles.grid}>
       <div className={styles.panel}>
