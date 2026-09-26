@@ -44,7 +44,7 @@ export function canUseOpenAI(){
 export async function extractWithOpenAI(units:EvidenceUnit[],sourceUrl:string):Promise<ExtractionOutput>{
   const key=process.env.OPENAI_API_KEY;
   if(!key)throw new Error("OPENAI_API_KEY is not configured.");
-  const model=process.env.OPENAI_MODEL||"gpt-5.6";
+  const model=process.env.OPENAI_MODEL||"gpt-5.6-luna";
   const selected=selectUnitsForAI(units);
   const evidence=selected.map(u=>`[${u.unitId}] [${u.blockType}]${u.sectionHeading?` [section: ${u.sectionHeading}]`:""} ${u.text}`).join("\n");
 

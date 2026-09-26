@@ -40,7 +40,7 @@ export async function runRadarPipeline(db:SupabaseRestClient,input:{sourceId:str
     let model="mock",promptVersion="mock-v2";
     if(canUseOpenAI()){
       raw=await extractWithOpenAI(segmentation.units,fetched.finalUrl);
-      model=process.env.OPENAI_MODEL||"gpt-5.6";promptVersion="vip-radar-structured-v1";
+      model=process.env.OPENAI_MODEL||"gpt-5.6-luna";promptVersion="vip-radar-structured-v1";
     }else{
       raw=buildMockExtraction(segmentation.units,fetched.finalUrl);
     }
