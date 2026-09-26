@@ -1,7 +1,7 @@
 import {safeFetch} from "./safe-fetcher";
 import {segmentHtml} from "./dom-segmenter";
 import {buildMockExtraction} from "./mock-extractor";
-import {extractWithOpenAI,canUseOpenAI} from "./openai-extractor";
+import {extractWithOpenAI,canUseOpenAI,activeAIModel} from "./openai-extractor";
 import {validateExtraction} from "./evidence-validator";
 import {passesReviewGate,deriveContactRoute,duplicateHint,candidateMetadata} from "./candidate-intelligence";
 import {SupabaseRestClient} from "./supabase-rest";
@@ -34,13 +34,11 @@ export async function runRadarPipeline(db:SupabaseRestClient,input:{sourceId:str
       p_units:segmentation.units.map(u=>({ordinal:u.ordinal,blockType:u.blockType,sectionHeading:u.sectionHeading,text:u.text,sourceStartOffset:u.sourceStartOffset,sourceEndOffset:u.sourceEndOffset,contextBefore:u.contextBefore,contextAfter:u.contextAfter}))
     });
 
-    const mode=(process.env.RADAR_AI_MODE??"mock").toLowerCase();
-    if(mode==="openai"&&!process.env.OPENAI_API_KEY)throw new Error("RADAR_AI_MODE=openai but OPENAI_API_KEY is not configured.");
     let raw:ExtractionOutput;
     let model="mock",promptVersion="mock-v2";
     if(canUseOpenAI()){
       raw=await extractWithOpenAI(segmentation.units,fetched.finalUrl);
-      model=process.env.OPENAI_MODEL||"gpt-5.6-luna";promptVersion="vip-radar-structured-v1";
+      model=activeAIModel();promptVersion="vip-radar-structured-v1";
     }else{
       raw=buildMockExtraction(segmentation.units,fetched.finalUrl);
     }
