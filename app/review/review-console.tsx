@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import styles from "./review-console.module.css";
+import RadarPanels from "./radar-panels";
 
 type Source={
   id:string;name:string;source_type:string;base_url:string;authority_tier:string;fetch_mode:string;
@@ -93,8 +94,10 @@ export default function ReviewConsole(){
     setBusy(true);setError("");setMessage("");
     try{
       const r=await api("/api/radar/run",{method:"POST",body:JSON.stringify({source_id:sourceId,url})});
-      await refresh(false);await load(r.jobId);await refreshOverview();
-      setMessage("단일 Source 수집과 추출이 완료되었습니다.");
+      await refresh(false);
+      if(r.jobId) await load(r.jobId);
+      await refreshOverview();
+      setMessage(r.unchanged?"페이지 내용이 이전과 동일해 재추출을 생략했습니다.":"단일 Source 수집과 추출이 완료되었습니다.");
     }catch(e:any){setError(e.message);}finally{setBusy(false);}
   }
 
@@ -141,6 +144,7 @@ export default function ReviewConsole(){
         <div className={styles.navLabel}>Workspace</div>
         <a className={styles.navLink} href="#overview"><span className={styles.navIcon}><Icon name="overview"/></span>Overview</a>
         <a className={styles.navLink} href="#sources"><span className={styles.navIcon}><Icon name="source"/></span>Source intelligence</a>
+        <a className={styles.navLink} href="#approved"><span className={styles.navIcon}><Icon name="spark"/></span>Radar workspace</a>
         <a className={styles.navLink+" "+styles.navActive} href="#review"><span className={styles.navIcon}><Icon name="review"/></span>Review queue{overview.review>0&&<span className={styles.navCount}>{overview.review}</span>}</a>
         <a className={styles.navLink} href="#jobs"><span className={styles.navIcon}><Icon name="jobs"/></span>Jobs</a>
       </nav>
@@ -217,6 +221,8 @@ export default function ReviewConsole(){
           </details>
         </section>
 
+        <RadarPanels/>
+
         <section id="review" className={styles.section}>
           <div className={styles.sectionHeader}><div><h2 className={styles.sectionTitle}>Review queue</h2><div className={styles.sectionHelp}>검색 결과는 Evidence와 함께 사람이 검토한 뒤에만 정식 Radar 데이터가 됩니다.</div></div></div>
           {message&&<div className={styles.notice+" "+styles.noticeSuccess}><Icon name="check"/><span>{message}</span></div>}
@@ -245,6 +251,12 @@ export default function ReviewConsole(){
                     <div className={styles.candidateHead}><div className={styles.personRow}><div className={styles.avatar}>{initials(name)}</div><div><div className={styles.personName}>{name}</div><div className={styles.personRole}>{person?.role_at_event??"Role not confirmed"}</div><div className={styles.personOrg}>{person?.title_at_event??""}{person?.organization_at_event?" · "+person.organization_at_event:""}</div></div></div><span className={styles.statusBadge+" "+statusClass(c.status)}>{c.status}</span></div>
                     <div className={styles.candidateBody}>
                       <div className={styles.eventBlock}><div className={styles.eventTitle}>{x?.event_name??"Event name not confirmed"}</div><div className={styles.eventMeta}><span className={styles.metaItem}><Icon name="calendar"/>{fmtDate(x?.start_date)}{x?.end_date&&x.end_date!==x.start_date?" — "+fmtDate(x.end_date):""}</span><span className={styles.metaItem}><Icon name="pin"/>{x?.venue??"장소 미확인"}</span>{x?.official_url&&<a className={styles.metaItem} href={x.official_url} target="_blank" rel="noreferrer"><Icon name="external"/>Official source</a>}</div></div>
+                      <div className={styles.presenceLine}>
+                        Lead <span className={styles.presenceBadge}>{c.lead_days==null?"UNKNOWN":c.lead_days+" DAYS"}</span>
+                        <span className={styles.presenceBadge}>{c.lead_bucket??"UNKNOWN"}</span>
+                        Route <span className={styles.presenceBadge}>{c.contact_route_hint??x?.contact_route_hint??"HOST_FIRST"}</span>
+                        {c.duplicate_hint?.possible&&<span style={{color:"#a35b00",fontWeight:700}}>Possible duplicate · review before outreach</span>}
+                      </div>
                       <div className={styles.evidenceTitleRow}><div className={styles.evidenceTitle}>Evidence</div><div className={styles.evidenceHint}>근거를 클릭하면 원문 Unit으로 이동합니다.</div></div>
                       <div className={styles.evidenceList}>{evidence.map(e=><button key={e.kind} className={styles.evidenceRow} onClick={()=>e.code&&jumpEvidence(e.code)} disabled={!e.code}><span className={styles.evidenceKind}>{e.kind}</span><span className={styles.evidenceText+(e.unit?"":" "+styles.evidenceTextMuted)}>{e.unit?.exact_text??e.missing}</span><span className={styles.evidenceUnit+(e.unit?"":" "+styles.evidenceMissing)}>{e.code??"UNKNOWN"}</span></button>)}</div>
                       <div className={styles.presenceLine}>Physical presence <span className={styles.presenceBadge}>{person?.presence_hint??"UNKNOWN"}</span><span>별도 현장 참석 근거 없이는 자동 승격하지 않습니다.</span></div>
